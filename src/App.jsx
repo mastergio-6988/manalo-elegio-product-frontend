@@ -43,6 +43,14 @@ function money(value) {
   return `₱${Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function createdAt(value) {
+  if (!value) return '—';
+  const date = new Date(`${String(value).replace(' ', 'T')}Z`);
+  return Number.isNaN(date.getTime()) ? '—' : new Intl.DateTimeFormat('en-PH', {
+    dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Manila',
+  }).format(date);
+}
+
 function Login({ onLogin }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -195,12 +203,12 @@ function Products({ onLogout }) {
       </section>
       <section className="card table-card" aria-label="Products">
           {products.length > 0 ? <div className="table-scroll"><table>
-            <thead><tr><th>ID</th><th>Name</th><th>Description</th><th>Price</th><th>Qty</th><th>Actions</th></tr></thead>
+            <thead><tr><th>ID</th><th>Name</th><th>Description</th><th>Price</th><th>Qty</th><th>Created</th><th>Actions</th></tr></thead>
             <tbody>{products.map((item) => (
               <tr key={item.id}>
                 <td>{item.id}</td><td>{item.product_name}</td><td className="description-cell">{item.description || '—'}</td>
                 <td>{money(item.price)}</td>
-                <td>{Number(item.quantity).toLocaleString('en-PH')}</td>
+                <td>{Number(item.quantity).toLocaleString('en-PH')}</td><td className="created-at-cell">{createdAt(item.created_at)}</td>
                 <td><div className="actions"><button className="btn edit small" onClick={() => editProduct(item)}>Edit</button><button className="btn danger small" onClick={() => requestDelete(item)}>Delete</button></div></td>
               </tr>
             ))}</tbody>
