@@ -96,6 +96,7 @@ function Products({ onLogout }) {
   const [product, setProduct] = useState(initialProduct);
   const [editingId, setEditingId] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
   const [authAction, setAuthAction] = useState(null);
   const [authCredentials, setAuthCredentials] = useState({ username: '', password: '' });
   const [authError, setAuthError] = useState('');
@@ -191,13 +192,19 @@ function Products({ onLogout }) {
 
   function requestSave(event) {
     event.preventDefault();
-    if (editingId !== null && !window.confirm('Save these changes to the product? Press OK to continue or Cancel to keep editing.')) return;
-    requestAuthentication({ type: 'save' });
+    const action = { type: 'save' };
+    if (editingId !== null) setConfirmAction(action);
+    else requestAuthentication(action);
   }
 
   function requestDelete(item) {
-    if (!window.confirm(`Are you sure you want to delete “${item.product_name}”? Press OK to continue or Cancel to keep it.`)) return;
-    requestAuthentication({ type: 'delete', item });
+    setConfirmAction({ type: 'delete', item });
+  }
+
+  function confirmProductAction() {
+    const action = confirmAction;
+    setConfirmAction(null);
+    if (action) requestAuthentication(action);
   }
 
   async function authorizeMutation(event) {
@@ -273,6 +280,15 @@ function Products({ onLogout }) {
         </aside>
       </div>
       <p className="footer">SECURE INVENTORY WORKSPACE&nbsp; · &nbsp;PRODUCT DATA PROTECTED BY LAVALUST</p>
+
+      {confirmAction && <div className="auth-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) setConfirmAction(null); }}>
+        <section className="card auth-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+          <div className="eyebrow">CONFIRM ACTION</div>
+          <h2 id="confirm-title">{confirmAction.type === 'delete' ? 'Delete this product?' : 'Save these changes?'}</h2>
+          <p className="form-copy">{confirmAction.type === 'delete' ? `“${confirmAction.item.product_name}” will be permanently removed from your catalog.` : 'Your product changes will be saved after you confirm your identity.'}</p>
+          <div className="form-actions"><button type="button" className="btn light" onClick={() => setConfirmAction(null)}>Cancel</button><button type="button" className="btn" onClick={confirmProductAction}>{confirmAction.type === 'delete' ? 'OK, delete' : 'OK, save changes'}</button></div>
+        </section>
+      </div>}
 
       {authAction && <div className="auth-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget && !authBusy) cancelAuthentication(); }}>
         <section className="card auth-dialog" role="dialog" aria-modal="true" aria-labelledby="auth-title">
