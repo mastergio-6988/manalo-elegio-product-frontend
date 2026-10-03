@@ -63,7 +63,7 @@ function Login({ onLogin }) {
       localStorage.setItem('lab6_refresh_token', result.tokens.refresh_token);
       onLogin();
     } catch (err) {
-      setError(err.message);
+      throw err;
     } finally {
       setBusy(false);
     }
@@ -96,6 +96,10 @@ function Products({ onLogout }) {
   const [product, setProduct] = useState(initialProduct);
   const [editingId, setEditingId] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [authAction, setAuthAction] = useState(null);
+  const [authCredentials, setAuthCredentials] = useState({ username: '', password: '' });
+  const [authError, setAuthError] = useState('');
+  const [authBusy, setAuthBusy] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const totalUnits = products.reduce((total, item) => total + Number(item.quantity || 0), 0);
@@ -118,8 +122,7 @@ function Products({ onLogout }) {
     setProduct((current) => ({ ...current, [event.target.name]: event.target.value }));
   }
 
-  async function saveProduct(event) {
-    event.preventDefault();
+  async function saveProduct(credentials) {
     setBusy(true);
     setError('');
     const editing = editingId !== null;
@@ -130,6 +133,7 @@ function Products({ onLogout }) {
           ...product,
           price: Number(product.price),
           quantity: Number(product.quantity),
+          reauth: credentials,
         }),
       });
       setProduct(initialProduct);
@@ -137,7 +141,7 @@ function Products({ onLogout }) {
       setFormOpen(false);
       await loadProducts();
     } catch (err) {
-      setError(err.message);
+      throw err;
     } finally {
       setBusy(false);
     }
@@ -161,13 +165,50 @@ function Products({ onLogout }) {
     setFormOpen(false);
   }
 
-  async function deleteProduct(item) {
-    if (!window.confirm(`Delete “${item.product_name}”? This cannot be undone.`)) return;
+  async function deleteProduct(item, credentials) {
     try {
-      await apiRequest(`/api/products/${item.id}`, { method: 'DELETE' });
+      await apiRequest(`/api/products/${item.id}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ reauth: credentials }),
+      });
       await loadProducts();
     } catch (err) {
-      setError(err.message);
+      throw err;
+    }
+  }
+
+  function requestAuthentication(action) {
+    setAuthAction(action);
+    setAuthCredentials({ username: '', password: '' });
+    setAuthError('');
+  }
+
+  function cancelAuthentication() {
+    setAuthAction(null);
+    setAuthCredentials({ username: '', password: '' });
+    setAuthError('');
+  }
+
+  function requestSave(event) {
+    event.preventDefault();
+    requestAuthentication({ type: 'save' });
+  }
+
+  async function authorizeMutation(event) {
+    event.preventDefault();
+    if (!authAction) return;
+    setAuthBusy(true);
+    setAuthError('');
+    try {
+      const action = authAction;
+      if (action.type === 'save') await saveProduct(authCredentials);
+      else await deleteProduct(action.item, authCredentials);
+      setAuthAction(null);
+      setAuthCredentials({ username: '', password: '' });
+    } catch (err) {
+      setAuthError(err.message);
+    } finally {
+      setAuthBusy(false);
     }
   }
 
@@ -201,7 +242,7 @@ function Products({ onLogout }) {
                 <td><strong>{item.product_name}</strong><div className="desc">{item.description || 'No description'}</div></td>
                 <td>{money(item.price)}</td>
                 <td>{Number(item.quantity).toLocaleString('en-PH')}</td>
-                <td><div className="actions"><button className="btn light small" onClick={() => editProduct(item)}>Edit</button><button className="btn danger small" onClick={() => deleteProduct(item)}>Delete</button></div></td>
+                <td><div className="actions"><button className="btn light small" onClick={() => editProduct(item)}>Edit</button><button className="btn danger small" onClick={() => requestAuthentication({ type: 'delete', item })}>Delete</button></div></td>
               </tr>
             ))}</tbody>
           </table></div> : <div className="empty"><div className="empty-mark">F</div><strong>Your catalog starts here</strong><p>Add a product to begin building your inventory.</p></div>}
@@ -213,7 +254,7 @@ function Products({ onLogout }) {
             <button className="btn" onClick={() => setFormOpen(true)}>Add a product</button>
           </> : <>
             <div className="form-kicker eyebrow">CATALOG DETAILS</div><h3>{editingId !== null ? 'Edit product' : 'Add a product'}</h3><p className="form-copy">Keep product details accurate and up to date.</p>
-            <form onSubmit={saveProduct}>
+            <form onSubmit={requestSave}>
               <div className="field"><label htmlFor="product_name">Product name</label><input className="input" id="product_name" name="product_name" value={product.product_name} onChange={updateField} maxLength={100} required placeholder="e.g. Leather weekender" /></div>
               <div className="field"><label htmlFor="description">Description</label><textarea className="input" id="description" name="description" value={product.description} onChange={updateField} placeholder="Materials, details, and notes" /></div>
               <div className="form-row">
@@ -226,6 +267,20 @@ function Products({ onLogout }) {
         </aside>
       </div>
       <p className="footer">SECURE INVENTORY WORKSPACE&nbsp; · &nbsp;PRODUCT DATA PROTECTED BY LAVALUST</p>
+
+      {authAction && <div className="auth-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget && !authBusy) cancelAuthentication(); }}>
+        <section className="card auth-dialog" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+          <div className="eyebrow">SECURITY CHECK</div>
+          <h2 id="auth-title">Confirm your identity</h2>
+          <p className="form-copy">Enter your product manager credentials to {authAction.type === 'delete' ? `delete “${authAction.item.product_name}”` : editingId !== null ? 'update this product' : 'add this product'}.</p>
+          {authError && <p className="alert" role="alert">{authError}</p>}
+          <form onSubmit={authorizeMutation}>
+            <div className="field"><label htmlFor="reauth_username">Username</label><input className="input" id="reauth_username" autoComplete="username" value={authCredentials.username} onChange={(event) => setAuthCredentials((current) => ({ ...current, username: event.target.value }))} required /></div>
+            <div className="field"><label htmlFor="reauth_password">Password</label><input className="input" id="reauth_password" type="password" autoComplete="current-password" value={authCredentials.password} onChange={(event) => setAuthCredentials((current) => ({ ...current, password: event.target.value }))} required /></div>
+            <div className="form-actions"><button type="button" className="btn light" disabled={authBusy} onClick={cancelAuthentication}>Cancel</button><button className="btn" disabled={authBusy}>{authBusy ? 'Verifying…' : 'Verify & continue'}</button></div>
+          </form>
+        </section>
+      </div>}
     </main>
   );
 }

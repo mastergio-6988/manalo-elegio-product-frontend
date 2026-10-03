@@ -2,6 +2,8 @@
 
 React and Vite client for the Laboratory Exercise No. 6 product API.
 
+The interface asks for the administrator credentials again before every product create, update, or delete. The API validates those credentials as part of each write request.
+
 ## Run locally
 
 ```sh
