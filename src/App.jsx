@@ -194,6 +194,11 @@ function Products({ onLogout }) {
     requestAuthentication({ type: 'save' });
   }
 
+  function requestDelete(item) {
+    if (!window.confirm(`Are you sure you want to delete “${item.product_name}”? Press OK to continue or Cancel to keep it.`)) return;
+    requestAuthentication({ type: 'delete', item });
+  }
+
   async function authorizeMutation(event) {
     event.preventDefault();
     if (!authAction) return;
@@ -242,7 +247,7 @@ function Products({ onLogout }) {
                 <td><strong>{item.product_name}</strong><div className="desc">{item.description || 'No description'}</div></td>
                 <td>{money(item.price)}</td>
                 <td>{Number(item.quantity).toLocaleString('en-PH')}</td>
-                <td><div className="actions"><button className="btn light small" onClick={() => editProduct(item)}>Edit</button><button className="btn danger small" onClick={() => requestAuthentication({ type: 'delete', item })}>Delete</button></div></td>
+                <td><div className="actions"><button className="btn light small" onClick={() => editProduct(item)}>Edit</button><button className="btn danger small" onClick={() => requestDelete(item)}>Delete</button></div></td>
               </tr>
             ))}</tbody>
           </table></div> : <div className="empty"><div className="empty-mark">F</div><strong>Your catalog starts here</strong><p>Add a product to begin building your inventory.</p></div>}
