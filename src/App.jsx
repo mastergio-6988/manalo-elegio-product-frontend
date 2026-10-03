@@ -191,6 +191,7 @@ function Products({ onLogout }) {
 
   function requestSave(event) {
     event.preventDefault();
+    if (editingId !== null && !window.confirm('Save these changes to the product? Press OK to continue or Cancel to keep editing.')) return;
     requestAuthentication({ type: 'save' });
   }
 
