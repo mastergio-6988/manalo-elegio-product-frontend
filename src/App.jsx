@@ -70,22 +70,23 @@ function Login({ onLogin }) {
   }
 
   return (
-    <main className="login-page">
-      <section className="login-card">
-        <div className="login-brand"><span className="brand-glyph">P</span><span>PRODUCT MANAGEMENT</span></div>
-        <p className="login-overline">LABORATORY EXERCISE NO. 6</p>
-        <h1>Welcome back</h1>
-        <p className="login-subtitle">Sign in to manage your product catalog.</p>
-        {error && <p className="notice error" role="alert">{error}</p>}
-        <form onSubmit={submit} className="login-form">
-          <label htmlFor="username">Username</label>
-          <input id="username" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} required placeholder="Enter your username" />
-          <label htmlFor="password">Password</label>
-          <input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="Enter your password" />
-          <button className="button primary login-button" disabled={busy}>{busy ? 'Signing in…' : 'Login'}</button>
-        </form>
-        <div className="login-foot"><span className="secure-dot" /> Protected by LavaLust API authentication</div>
-      </section>
+    <main className="login card">
+      <div className="brand">
+        <div className="mark">F</div>
+        <div><div className="eyebrow">FORGE&nbsp; / &nbsp;INVENTORY</div><h1>Product Manager</h1></div>
+      </div>
+      <div className="login-intro">
+        <div className="eyebrow">YOUR PRODUCT WORKSPACE</div>
+        <h2>A clearer view of your inventory.</h2>
+        <p className="muted">Sign in to manage products, stock, and pricing from one place.</p>
+      </div>
+      {error && <p className="alert" role="alert">{error}</p>}
+      <form onSubmit={submit}>
+        <div className="field"><label htmlFor="username">Username</label><input className="input" id="username" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} required placeholder="Enter your username" /></div>
+        <div className="field"><label htmlFor="password">Password</label><input className="input" id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="Enter your password" /></div>
+        <button className="btn login-submit" disabled={busy}>{busy ? 'Signing in…' : 'Sign in to workspace'}</button>
+      </form>
+      <div className="login-foot"><span className="status-dot" />SECURE ACCESS&nbsp; · &nbsp;LAVALUST</div>
     </main>
   );
 }
@@ -94,8 +95,11 @@ function Products({ onLogout }) {
   const [products, setProducts] = useState([]);
   const [product, setProduct] = useState(initialProduct);
   const [editingId, setEditingId] = useState(null);
+  const [formOpen, setFormOpen] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const totalUnits = products.reduce((total, item) => total + Number(item.quantity || 0), 0);
+  const stockValue = products.reduce((total, item) => total + Number(item.price || 0) * Number(item.quantity || 0), 0);
 
   async function loadProducts() {
     try {
@@ -130,6 +134,7 @@ function Products({ onLogout }) {
       });
       setProduct(initialProduct);
       setEditingId(null);
+      setFormOpen(false);
       await loadProducts();
     } catch (err) {
       setError(err.message);
@@ -146,12 +151,14 @@ function Products({ onLogout }) {
       price: String(item.price),
       quantity: String(item.quantity),
     });
+    setFormOpen(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function cancelEdit() {
     setEditingId(null);
     setProduct(initialProduct);
+    setFormOpen(false);
   }
 
   async function deleteProduct(item) {
@@ -165,61 +172,60 @@ function Products({ onLogout }) {
   }
 
   return (
-    <main className="products-page">
-      <header className="product-header">
-        <div className="product-header-inner">
-          <div className="product-brand"><span className="brand-glyph">P</span><span>Product Management</span></div>
-          <button className="button logout-button" onClick={() => onLogout(true)}>Logout</button>
+    <main className="shell">
+      <header className="top">
+        <div className="brand"><div className="mark">F</div><div><div className="eyebrow">FORGE&nbsp; / &nbsp;INVENTORY</div><h1>Product Manager</h1></div></div>
+        <div className="header-actions">
+          <span className="session-label"><span className="status-dot" />WORKSPACE ACTIVE</span>
+          <button className="btn light logout" onClick={() => onLogout(true)}>Log out</button>
         </div>
       </header>
 
-      <div className="content-wrap">
-        <div className="page-title-row">
-          <div><p className="section-overline">YOUR WORKSPACE</p><h1>Product list</h1></div>
-          <div className="item-count">{products.length} {products.length === 1 ? 'product' : 'products'}</div>
-        </div>
+      <section className="toolbar"><div className="heading"><div className="eyebrow">PRODUCT MANAGEMENT&nbsp; / &nbsp;OVERVIEW</div><h2>Inventory, in focus.</h2><p>Manage your catalog and keep every detail in order.</p></div></section>
 
-        {error && <p className="notice error" role="alert">{error}</p>}
+      {error && <p className="alert" role="alert">{error}</p>}
 
-        <form className="product-form-card" onSubmit={saveProduct}>
-          <div className="product-fields">
-            <label className="sr-only" htmlFor="product_name">Product name</label>
-            <input id="product_name" name="product_name" value={product.product_name} onChange={updateField} maxLength={100} required placeholder="Product name" />
-            <label className="sr-only" htmlFor="description">Description</label>
-            <input id="description" name="description" value={product.description} onChange={updateField} placeholder="Description" />
-            <label className="sr-only" htmlFor="price">Price</label>
-            <input id="price" name="price" type="number" min="0" step="0.01" value={product.price} onChange={updateField} required placeholder="Price" />
-            <label className="sr-only" htmlFor="quantity">Quantity</label>
-            <input id="quantity" name="quantity" type="number" min="0" step="1" value={product.quantity} onChange={updateField} required placeholder="Quantity" />
-          </div>
-          <div className="form-buttons">
-            {editingId !== null && <button type="button" className="button cancel-button" onClick={cancelEdit}>Cancel</button>}
-            <button className="button primary" disabled={busy}>{busy ? 'Saving…' : editingId !== null ? 'Update' : 'Add'}</button>
-          </div>
-        </form>
+      <section className="stats" aria-label="Inventory summary">
+        <article className="stat-card card"><span className="stat-label">TOTAL PRODUCTS</span><strong>{String(products.length).padStart(2, '0')}</strong><span className="stat-note">Active catalog items</span></article>
+        <article className="stat-card card"><span className="stat-label">UNITS IN STOCK</span><strong>{totalUnits.toLocaleString('en-PH')}</strong><span className="stat-note">Across all products</span></article>
+        <article className="stat-card card stat-value"><span className="stat-label">STOCK VALUE</span><strong>{money(stockValue)}</strong><span className="stat-note">Based on current quantities</span></article>
+      </section>
 
-        <section className="table-card" aria-label="Products">
-          <div className="table-scroll">
-            <table>
-              <thead><tr><th className="id-col">ID</th><th>Name</th><th>Description</th><th>Price</th><th>Qty</th><th className="actions-col">Actions</th></tr></thead>
-              <tbody>
-                {products.map((item) => (
-                  <tr key={item.id}>
-                    <td className="id-cell">{item.id}</td>
-                    <td className="product-name-cell">{item.product_name}</td>
-                    <td className="description-cell">{item.description || '—'}</td>
-                    <td className="price-cell">{money(item.price)}</td>
-                    <td>{item.quantity}</td>
-                    <td><div className="row-actions"><button className="button edit-button" onClick={() => editProduct(item)}>Edit</button><button className="button delete-button" onClick={() => deleteProduct(item)}>Delete</button></div></td>
-                  </tr>
-                ))}
-                {products.length === 0 && <tr><td className="empty-cell" colSpan="6">Your catalog is empty. Add your first product above.</td></tr>}
-              </tbody>
-            </table>
-          </div>
+      <div className="layout">
+        <section className="card table-card" aria-label="Products">
+          <div className="table-heading"><div><div className="eyebrow">CATALOG</div><h3>Product list</h3></div><span className="count">{products.length} {products.length === 1 ? 'ITEM' : 'ITEMS'}</span></div>
+          {products.length > 0 ? <div className="table-scroll"><table>
+            <thead><tr><th>Product</th><th>Price</th><th>Quantity</th><th>Actions</th></tr></thead>
+            <tbody>{products.map((item) => (
+              <tr key={item.id}>
+                <td><strong>{item.product_name}</strong><div className="desc">{item.description || 'No description'}</div></td>
+                <td>{money(item.price)}</td>
+                <td>{Number(item.quantity).toLocaleString('en-PH')}</td>
+                <td><div className="actions"><button className="btn light small" onClick={() => editProduct(item)}>Edit</button><button className="btn danger small" onClick={() => deleteProduct(item)}>Delete</button></div></td>
+              </tr>
+            ))}</tbody>
+          </table></div> : <div className="empty"><div className="empty-mark">F</div><strong>Your catalog starts here</strong><p>Add a product to begin building your inventory.</p></div>}
         </section>
-        <footer className="page-footer">Product data is managed securely through the LavaLust API.</footer>
+
+        <aside className="card form-card">
+          {!formOpen ? <>
+            <div className="form-kicker eyebrow">GET STARTED</div><h3>Build your catalog</h3><p className="form-copy">Add a product and keep your inventory organized.</p>
+            <button className="btn" onClick={() => setFormOpen(true)}>Add a product</button>
+          </> : <>
+            <div className="form-kicker eyebrow">CATALOG DETAILS</div><h3>{editingId !== null ? 'Edit product' : 'Add a product'}</h3><p className="form-copy">Keep product details accurate and up to date.</p>
+            <form onSubmit={saveProduct}>
+              <div className="field"><label htmlFor="product_name">Product name</label><input className="input" id="product_name" name="product_name" value={product.product_name} onChange={updateField} maxLength={100} required placeholder="e.g. Leather weekender" /></div>
+              <div className="field"><label htmlFor="description">Description</label><textarea className="input" id="description" name="description" value={product.description} onChange={updateField} placeholder="Materials, details, and notes" /></div>
+              <div className="form-row">
+                <div className="field"><label htmlFor="price">Price (PHP)</label><input className="input" id="price" name="price" type="number" min="0" step="0.01" value={product.price} onChange={updateField} required placeholder="0.00" /></div>
+                <div className="field"><label htmlFor="quantity">Quantity</label><input className="input" id="quantity" name="quantity" type="number" min="0" step="1" value={product.quantity} onChange={updateField} required placeholder="0" /></div>
+              </div>
+              <div className="form-actions"><button className="btn" disabled={busy}>{busy ? 'Saving…' : editingId !== null ? 'Update product' : 'Save product'}</button><button type="button" className="btn light" onClick={cancelEdit}>Cancel</button></div>
+            </form>
+          </>}
+        </aside>
       </div>
+      <p className="footer">SECURE INVENTORY WORKSPACE&nbsp; · &nbsp;PRODUCT DATA PROTECTED BY LAVALUST</p>
     </main>
   );
 }
