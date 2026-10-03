@@ -2,7 +2,7 @@
 
 React and Vite client for the Laboratory Exercise No. 6 product API.
 
-The interface asks for the administrator credentials again before every product create, update, or delete. The API validates those credentials as part of each write request.
+The interface uses an OK/Cancel browser confirmation before product creates, updates, and deletes. The API still requires a valid bearer token for product changes.
 
 ## Run locally
 
